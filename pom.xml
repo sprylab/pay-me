@@ -58,14 +58,6 @@
       </snapshotRepository>
     </distributionManagement>
 
-    <repositories>
-        <repository>
-            <id>sonatype-snapshots</id>
-            <name>sonatype snapshots</name>
-            <url>https://oss.sonatype.org/content/repositories/snapshots/</url>
-        </repository>
-    </repositories>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
