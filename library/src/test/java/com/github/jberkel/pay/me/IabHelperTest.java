@@ -10,6 +10,8 @@ import android.content.pm.ResolveInfo;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
+import android.util.Base64;
+
 import com.android.vending.billing.IInAppBillingService;
 import com.github.jberkel.pay.me.listener.OnConsumeFinishedListener;
 import com.github.jberkel.pay.me.listener.OnConsumeMultiFinishedListener;
@@ -30,6 +32,14 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.res.builder.RobolectricPackageManager;
 import org.robolectric.shadows.ShadowLog;
 
+import java.security.KeyFactory;
+import java.security.KeyPair;
+import java.security.PrivateKey;
+import java.security.PublicKey;
+import java.security.Signature;
+import java.security.spec.EncodedKeySpec;
+import java.security.spec.PKCS8EncodedKeySpec;
+import java.security.spec.X509EncodedKeySpec;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -358,10 +368,14 @@ public class IabHelperTest {
 
     @Test public void shouldLaunchPurchaseAndStartIntentAndThenHandleActivityResultWithData() throws Exception {
         shouldStartIntentAfterSuccessfulLaunchPurchase();
+
+        final String receiptJson = "{ \"productId\": \"foo\" }";
+        String signature = signReceiptJson(receiptJson);
+
         Intent data = new Intent();
         data.putExtra(RESPONSE_CODE, OK.code);
-        data.putExtra(RESPONSE_INAPP_PURCHASE_DATA, "{ \"productId\": \"foo\" }");
-        data.putExtra(RESPONSE_INAPP_SIGNATURE, "");
+        data.putExtra(RESPONSE_INAPP_PURCHASE_DATA, receiptJson);
+        data.putExtra(RESPONSE_INAPP_SIGNATURE, signature);
 
         assertThat(helper.handleActivityResult(TEST_REQUEST_CODE, Activity.RESULT_OK, data)).isTrue();
         verify(purchaseFinishedListener).onIabPurchaseFinished(eq(new IabResult(OK)), any(Purchase.class));
@@ -908,16 +922,44 @@ public class IabHelperTest {
         return list;
     }
 
+    private static KeyPair createKeyPair(byte[] encodedPrivateKey, byte[] encodedPublicKey) {
+        try {
+            EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(encodedPrivateKey);
+            KeyFactory generator = KeyFactory.getInstance("RSA");
+            PrivateKey privateKey = generator.generatePrivate(privateKeySpec);
 
-    private static Bundle createInventoryResponseBundle(String... skus) {
+            EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(encodedPublicKey);
+            PublicKey publicKey = generator.generatePublic(publicKeySpec);
+            return new KeyPair(publicKey, privateKey);
+        } catch (Exception e) {
+            throw new IllegalArgumentException("Failed to create KeyPair from provided encoded keys", e);
+        }
+    }
+
+    private static String signReceiptJson(final String receiptJson) throws Exception{
+        // create a public/private key pair
+        final byte[] publicKeyBytes = Base64.decode(PUBLIC_KEY, Base64.DEFAULT);
+        final byte[] privateKeyBytes = Base64.decode(PRIVATE_KEY, Base64.DEFAULT);
+        KeyPair pair = createKeyPair(privateKeyBytes, publicKeyBytes);
+
+        // and sign some data with it
+        Signature sig = Signature.getInstance("SHA1WithRSA");
+        sig.initSign(pair.getPrivate());
+        sig.update(receiptJson.getBytes());
+        return Base64.encodeToString(sig.sign(), Base64.DEFAULT);
+    }
+
+    private static Bundle createInventoryResponseBundle(String... skus) throws Exception {
         Bundle response = new Bundle();
         ArrayList<String> itemList = new ArrayList<String>(skus.length);
         ArrayList<String> signatures = new ArrayList<String>(skus.length);
         ArrayList<String> purchaseData = new ArrayList<String>(skus.length);
         for (String sku : skus) {
+            final String receiptJson = "{ \"productId\": \"" + sku + "\" }";
+            String signature = signReceiptJson(receiptJson);
             itemList.add(sku);
-            signatures.add("");
-            purchaseData.add("{ \"productId\": \""+sku+"\" }");
+            purchaseData.add(receiptJson);
+            signatures.add(signature);
         }
         response.putInt(RESPONSE_CODE, OK.code);
         response.putStringArrayList(RESPONSE_INAPP_ITEM_LIST, itemList);
@@ -938,11 +980,20 @@ public class IabHelperTest {
         return response;
     }
 
-    final static String PUBLIC_KEY = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzoFJ+dq/PQo2u71ndt2k\n" +
-            "t0XK3oGFvUPagg0QogBrp2IyBKTodFtmcb0riKtDGjZ9JKB45GIBC3RR2fuC9lOR\n" +
-            "15rRjA2Tfxoig0K/VYy7K5+fkLt2yGVDd3oqBFEDSGcwYYP1LfmgI8B2WJjACu3V\n" +
-            "ehEQeO/cYrr8tav6VthmqdrL9C+BL9McTMjf3FzeJOTkiGeOFCu58T/sYvSc0ESG\n" +
-            "YLh4lXAIG309WvEJ0GofxM4hWnD9aHcuu+hwYblrLJ5jk9hJQJmF7isripkDOQeO\n" +
-            "9UbH0kNa9o1pq05beHmGW9a1pt3vWmgBQXZQIOKZzxvmh52d0BJWBgp7NMh68MSx\n" +
-            "qwIDAQAB";
+    static final String PUBLIC_KEY = "MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC/AjGECRzwqMGn1KYjzn+gSZ2xHBO6Jf/wbpfA\n"
+        + "JUAzhLB49lFGQTHSpAgsfYEu+sQYduPRM5H1061YtBpebN0WKKwKrxVrIGI6sProi9xzYHihat8J\n"
+        + "k6YsqrGQCPuDSxJdI1dG9mwJoufkCy2XYyo4XEts+kuCtcztKjZ1tPie7QIDAQAB";
+
+    static final String PRIVATE_KEY = "MIICdQIBADANBgkqhkiG9w0BAQEFAASCAl8wggJbAgEAAoGBAL8CMYQJHPCowafUpiPOf6BJnbEc\n"
+        + "E7ol//Bul8AlQDOEsHj2UUZBMdKkCCx9gS76xBh249EzkfXTrVi0Gl5s3RYorAqvFWsgYjqw+uiL\n"
+        + "3HNgeKFq3wmTpiyqsZAI+4NLEl0jV0b2bAmi5+QLLZdjKjhcS2z6S4K1zO0qNnW0+J7tAgMBAAEC\n"
+        + "gYACLVk5Iw10ZMgITLE0GUd1IUGt4h8LcSFwsSIDq6kGrU2Bo3UbsuSJfRsmvqt5SJxxlvFT0h2o\n"
+        + "yqfgKfVe/Cis8eZmXaHghA79iiBhBacYh3Zd9rxL6QpaIcG+eSD9MzTtgBr2nfqQC9/uL4Lsb4Cu\n"
+        + "pZ6uBXcmhvzaC9i9CQX4tQJBAPu0gLJdm54R3/THi3wH/uZoVIL8VRLTyKbX/5on/2Go7EdY3Ywu\n"
+        + "dAowL+tjLDE2ixgvQEH0Vp11OHnAnUU0eSMCQQDCRI5uaZ+NcxrzvyLKkDHNCJ1n97s955RMi7EI\n"
+        + "ir/RYPk+iJ3eWwxdcA7KE8aNEiBPpmhNA+XLGrFdmYb0Y/CvAkAsjjIt4LYYUA+109DUHtI3VQaI\n"
+        + "vUQN9iFRr3CWiDgDwJQ6uPdWxi5SU19YKpD7ES2kFVEpm6ftbX+WxcrRIk3DAkB6E5ipe4g+2+lA\n"
+        + "6IhVYD1bSaGYds1b/k1ruJCb/IzDZzvY9wK1euOPR96TT9ACUDSruLdsRhm+At0YI2Tx6GeTAkAS\n"
+        + "lCSibgrXkuiZIniakCzbkDVrx+DEb/dEFU3KZkDIY+bQWJ9eVw2elUP0wwTkVsPPQXbIjbjV5Rni\n"
+        + "NUj2Rzl2";
 }
