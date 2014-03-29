@@ -660,10 +660,10 @@ public class IabHelper {
         }
 
         Bundle querySkus = new Bundle();
-        ArrayList<String> responseList = new ArrayList<>();
+        ArrayList<String> responseList = new ArrayList<String>();
         final int skuDetailsLimit = 20; // getSkuDetails() only handles 20 at a time.
         for (int i = 0; i < skuList.size(); i += skuDetailsLimit) {
-            ArrayList<String> twentyMaxSkuList = new ArrayList<>();
+            ArrayList<String> twentyMaxSkuList = new ArrayList<String>();
             twentyMaxSkuList.addAll( skuList.subList( i, i + skuDetailsLimit > skuList.size() ? skuList.size() : i + skuDetailsLimit) );
             querySkus.putStringArrayList(GET_SKU_DETAILS_ITEM_LIST, twentyMaxSkuList);
             Bundle skuDetails = mService.getSkuDetails(API_VERSION, mContext.getPackageName(), itemType.toString(), querySkus);
