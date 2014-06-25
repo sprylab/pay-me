@@ -1,9 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.sprylab</groupId>
+        <artifactId>sprylab-parent</artifactId>
+        <version>3</version>
+    </parent>
     <groupId>com.github.jberkel.pay.me</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
+    <version>0.0.3-sprylab</version>
     <packaging>pom</packaging>
     <name>pay-me parent</name>
     <description>pay-me parent</description>
@@ -14,7 +20,7 @@
             <plugin>
                 <groupId>com.jayway.maven.plugins.android.generation2</groupId>
                 <artifactId>android-maven-plugin</artifactId>
-                <version>3.8.2</version>
+                <version>3.9.0-rc.2</version>
                 <configuration>
                     <sdk>
                         <platform>19</platform>
@@ -22,6 +28,14 @@
                 </configuration>
                 <extensions>true</extensions>
             </plugin>
+              <plugin>
+                  <groupId>org.apache.maven.plugins</groupId>
+                  <artifactId>maven-surefire-plugin</artifactId>
+                  <version>2.17</version>
+                  <configuration>
+                      <argLine>${argLine} -XX:-UseSplitVerifier</argLine>
+                  </configuration>
+              </plugin>
           </plugins>
         </pluginManagement>
 
@@ -43,20 +57,20 @@
         <module>example</module>
     </modules>
 
-    <distributionManagement>
-      <repository>
-        <id>repo</id>
-        <name>zegoggles Snapshots</name>
-        <url>http://zegoggl.es:8081/nexus/content/repositories/releases/</url>
-      </repository>
+    <!--<distributionManagement>-->
+      <!--<repository>-->
+        <!--<id>repo</id>-->
+        <!--<name>zegoggles Snapshots</name>-->
+        <!--<url>http://zegoggl.es:8081/nexus/content/repositories/releases/</url>-->
+      <!--</repository>-->
 
-      <snapshotRepository>
-        <uniqueVersion>true</uniqueVersion>
-        <id>snapshot-repo</id>
-        <name>zegoggles Snapshots</name>
-        <url>http://zegoggl.es:8081/nexus/content/repositories/snapshots/</url>
-      </snapshotRepository>
-    </distributionManagement>
+      <!--<snapshotRepository>-->
+        <!--<uniqueVersion>true</uniqueVersion>-->
+        <!--<id>snapshot-repo</id>-->
+        <!--<name>zegoggles Snapshots</name>-->
+        <!--<url>http://zegoggl.es:8081/nexus/content/repositories/snapshots/</url>-->
+      <!--</snapshotRepository>-->
+    <!--</distributionManagement>-->
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>

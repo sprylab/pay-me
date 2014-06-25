@@ -6,4 +6,5 @@
 
     <uses-permission android:name="com.android.vending.BILLING" />
     <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="17"/>
+    <application />
 </manifest>
