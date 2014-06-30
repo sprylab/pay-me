@@ -648,6 +648,12 @@ public class IabHelper {
     private int querySkuDetails(ItemType itemType, Inventory inv, List<String> moreSkus)
             throws RemoteException, JSONException {
         logDebug("Querying SKU details.");
+        final IInAppBillingService service = mService;
+        final Context context = mContext;
+        if(context == null || service == null) {
+            logWarn("No context or service available for querying sku details");
+            return OK.code;
+        }
         ArrayList<String> skuList = new ArrayList<String>();
         skuList.addAll(inv.getAllOwnedSkus(itemType));
         if (moreSkus != null) {
@@ -665,7 +671,7 @@ public class IabHelper {
         // TODO: check for 20 SKU limit + add batching ?
         Bundle querySkus = new Bundle();
         querySkus.putStringArrayList(GET_SKU_DETAILS_ITEM_LIST, skuList);
-        Bundle skuDetails = mService.getSkuDetails(API_VERSION, mContext.getPackageName(), itemType.toString(), querySkus);
+        Bundle skuDetails = service.getSkuDetails(API_VERSION, context.getPackageName(), itemType.toString(), querySkus);
         if (skuDetails == null) return IABHELPER_BAD_RESPONSE.code;
 
         if (!skuDetails.containsKey(RESPONSE_GET_SKU_DETAILS_LIST)) {

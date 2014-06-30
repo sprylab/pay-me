@@ -5,7 +5,7 @@
     <parent>
         <groupId>com.github.jberkel.pay.me</groupId>
         <artifactId>parent</artifactId>
-        <version>0.0.4-sprylab</version>
+        <version>0.0.4-sprylab2</version>
     </parent>
 
     <artifactId>library</artifactId>
@@ -65,6 +65,19 @@
                                 </artifact>
                             </artifacts>
                         </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-source-plugin</artifactId>
+                <version>2.2.1</version>
+                <executions>
+                    <execution>
+                        <id>attach-sources</id>
+                        <goals>
+                            <goal>jar</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
