@@ -593,8 +593,14 @@ public class IabHelper {
         boolean verificationFailed = false;
         String continueToken = null;
         do {
-            Bundle ownedItems = mService.getPurchases(API_VERSION, mContext.getPackageName(),
-                    itemType.toString(), continueToken);
+            final IInAppBillingService service = mService;
+            final Context context = mContext;
+            if(service == null || mContext == null) {
+                logWarn("No context or service available for querying purchases");
+                return OK.code;
+            }
+            Bundle ownedItems = service.getPurchases(API_VERSION, context.getPackageName(),
+                itemType.toString(), continueToken);
 
             int response = getResponseCodeFromBundle(ownedItems);
             if (response != OK.code) {
