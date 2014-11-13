@@ -674,23 +674,34 @@ public class IabHelper {
             return OK.code;
         }
 
-        // TODO: check for 20 SKU limit + add batching ?
         Bundle querySkus = new Bundle();
-        querySkus.putStringArrayList(GET_SKU_DETAILS_ITEM_LIST, skuList);
-        Bundle skuDetails = service.getSkuDetails(API_VERSION, context.getPackageName(), itemType.toString(), querySkus);
-        if (skuDetails == null) return IABHELPER_BAD_RESPONSE.code;
+        ArrayList<String> responseList = new ArrayList<String>();
+        final int skuDetailsLimit = 20; // getSkuDetails() only handles 20 at a time.
+        for (int i = 0; i < skuList.size(); i += skuDetailsLimit) {
+            ArrayList<String> twentyMaxSkuList = new ArrayList<String>();
+            twentyMaxSkuList.addAll( skuList.subList( i, i + skuDetailsLimit > skuList.size() ? skuList.size() : i + skuDetailsLimit) );
+            querySkus.putStringArrayList(GET_SKU_DETAILS_ITEM_LIST, twentyMaxSkuList);
+            Bundle skuDetails = mService.getSkuDetails(API_VERSION, mContext.getPackageName(), itemType.toString(), querySkus);
 
-        if (!skuDetails.containsKey(RESPONSE_GET_SKU_DETAILS_LIST)) {
-            int response = getResponseCodeFromBundle(skuDetails);
-            if (response != OK.code) {
-                logWarn("getSkuDetails() failed: " + getDescription(response));
-                return response;
-            } else {
-                logError("getSkuDetails() returned a bundle with neither an error nor a detail list.");
+            if (skuDetails == null) {
                 return IABHELPER_BAD_RESPONSE.code;
             }
+            
+            if (!skuDetails.containsKey(RESPONSE_GET_SKU_DETAILS_LIST)) {
+                int response = getResponseCodeFromBundle(skuDetails);
+                if (response != OK.code) {
+                    logDebug("getSkuDetails() failed: " + getDescription(response));
+                    return response;
+                }
+                else {
+                    logError("getSkuDetails() returned a bundle with neither an error nor a detail list.");
+                    return IABHELPER_BAD_RESPONSE.code;
+                }
+            }
+
+            responseList.addAll(skuDetails.getStringArrayList(RESPONSE_GET_SKU_DETAILS_LIST));
         }
-        ArrayList<String> responseList = skuDetails.getStringArrayList(RESPONSE_GET_SKU_DETAILS_LIST);
+
         for (String json : responseList) {
             inv.addSkuDetails(new SkuDetails(json));
         }
