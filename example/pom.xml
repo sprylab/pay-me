@@ -27,7 +27,6 @@
             <artifactId>library</artifactId>
             <version>${project.version}</version>
             <type>aar</type>
-            <scope>compile</scope>
        </dependency>
 
         <dependency>
