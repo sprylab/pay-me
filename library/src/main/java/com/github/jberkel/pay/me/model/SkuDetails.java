@@ -15,9 +15,10 @@
 
 package com.github.jberkel.pay.me.model;
 
-import android.text.TextUtils;
 import org.json.JSONException;
 import org.json.JSONObject;
+
+import android.text.TextUtils;
 
 /**
  * Represents an in-app product's listing details.
@@ -29,6 +30,8 @@ public class SkuDetails {
     private final String mSku;
     private final String mType;
     private final String mPrice;
+    private final long mPriceAmountMicros;
+    private final String mPriceCurrencyCode;
     private final String mTitle;
     private final String mDescription;
 
@@ -44,6 +47,8 @@ public class SkuDetails {
         }
         mType = json.optString(TYPE);
         mPrice = json.optString(PRICE);
+        mPriceAmountMicros = json.optLong(PRICE_AMOUNT_MICROS);
+        mPriceCurrencyCode = json.optString(PRICE_CURRENCY_CODE);
         mTitle = json.optString(TITLE);
         mDescription = json.optString(DESCRIPTION);
         mItemType = ItemType.fromString(mType);
@@ -53,6 +58,8 @@ public class SkuDetails {
     SkuDetails(ItemType itemType,
                String sku,
                String price,
+               long priceAmountMicros,
+               String priceCurrencyCode,
                String title,
                String description) {
         if (itemType == null) throw new IllegalArgumentException("itemType cannot be null");
@@ -63,6 +70,8 @@ public class SkuDetails {
         mType = itemType.toString();
         mSku = sku;
         mPrice = price;
+        mPriceAmountMicros = priceAmountMicros;
+        mPriceCurrencyCode = priceCurrencyCode;
         mTitle = title;
         mDescription = description;
     }
@@ -79,6 +88,14 @@ public class SkuDetails {
      */
     public String getPrice() {
         return mPrice;
+    }
+
+    public long getPriceAmountMicros() {
+        return mPriceAmountMicros;
+    }
+
+    public String getPriceCurrencyCode() {
+        return mPriceCurrencyCode;
     }
 
     /**
@@ -130,6 +147,8 @@ public class SkuDetails {
     private static final String PRODUCT_ID = "productId";
     private static final String TYPE = "type";
     private static final String PRICE = "price";
+    private static final String PRICE_AMOUNT_MICROS = "price_amount_micros";
+    private static final String PRICE_CURRENCY_CODE = "price_currency_code";
     private static final String TITLE = "title";
     private static final String DESCRIPTION = "description";
 }

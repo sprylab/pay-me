@@ -1,13 +1,13 @@
 package com.github.jberkel.pay.me.model;
 
+import static com.github.jberkel.pay.me.TestHelper.resourceAsString;
+import static com.github.jberkel.pay.me.model.ItemType.INAPP;
+import static org.fest.assertions.api.Assertions.assertThat;
+
 import org.json.JSONException;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-
-import static com.github.jberkel.pay.me.TestHelper.resourceAsString;
-import static com.github.jberkel.pay.me.model.ItemType.*;
-import static org.fest.assertions.api.Assertions.assertThat;
 
 @RunWith(RobolectricTestRunner.class)
 public class SkuDetailsTest {
@@ -26,7 +26,7 @@ public class SkuDetailsTest {
 
     @Test
     public void shouldConstructWithoutJson() throws Exception {
-        SkuDetails details = new SkuDetails(INAPP, "123", "1.99", "ACME", "A great ACME flamethrower");
+        SkuDetails details = new SkuDetails(INAPP, "123", "1.99",  199000, "USB", "ACME", "A great ACME flamethrower");
         assertThat(details.getSku()).isEqualTo("123");
         assertThat(details.getDescription()).isEqualTo("A great ACME flamethrower");
         assertThat(details.getTitle()).isEqualTo("ACME");
@@ -47,19 +47,19 @@ public class SkuDetailsTest {
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAcceptNullItemTypeForArgumentConstructor() throws Exception {
-        new SkuDetails(null, "123", "1.99", "ACME", "A great ACME flamethrower");
+        new SkuDetails(null, "123", "1.99", 199000, "USB", "ACME", "A great ACME flamethrower");
     }
 
     @Test(expected = IllegalArgumentException.class)
     public void shouldNotAcceptEmptySKUForArgumentConstructor() throws Exception {
-        new SkuDetails(null, "", "1.99", "ACME", "A great ACME flamethrower");
+        new SkuDetails(null, "", "1.99", 199000, "USB",  "ACME", "A great ACME flamethrower");
     }
 
     @Test public void shouldCheckIfTestSku() throws Exception {
-        SkuDetails sku = new SkuDetails(INAPP, "123", "1.99", "ACME", "A great ACME flamethrower");
+        SkuDetails sku = new SkuDetails(INAPP, "123", "1.99", 199000, "USB",  "ACME", "A great ACME flamethrower");
         assertThat(sku.isTestSku()).isFalse();
 
-        SkuDetails test = new SkuDetails(INAPP, "android.test.foo", "1.99", "ACME", "A great ACME flamethrower");
+        SkuDetails test = new SkuDetails(INAPP, "android.test.foo", "1.99", 199000, "USB",  "ACME", "A great ACME flamethrower");
         assertThat(test.isTestSku()).isTrue();
     }
 }
