@@ -9,7 +9,7 @@
     </parent>
     <groupId>com.github.jberkel.pay.me</groupId>
     <artifactId>parent</artifactId>
-    <version>0.0.4-sprylab4</version>
+    <version>0.0.4-sprylab5</version>
     <packaging>pom</packaging>
     <name>pay-me parent</name>
     <description>pay-me parent</description>
