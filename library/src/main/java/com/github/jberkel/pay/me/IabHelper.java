@@ -15,18 +15,42 @@
 
 package com.github.jberkel.pay.me;
 
-import android.app.Activity;
-import android.app.PendingIntent;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentSender.SendIntentException;
-import android.content.ServiceConnection;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.text.TextUtils;
-import android.util.Log;
+import static android.app.Activity.RESULT_CANCELED;
+import static android.app.Activity.RESULT_OK;
+import static com.github.jberkel.pay.me.IabConsts.API_VERSION;
+import static com.github.jberkel.pay.me.IabConsts.GET_SKU_DETAILS_ITEM_LIST;
+import static com.github.jberkel.pay.me.IabConsts.INAPP_CONTINUATION_TOKEN;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_BUY_INTENT;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_CODE;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_GET_SKU_DETAILS_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_ITEM_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_PURCHASE_DATA;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_PURCHASE_DATA_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_SIGNATURE;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_SIGNATURE_LIST;
+import static com.github.jberkel.pay.me.Response.BILLING_UNAVAILABLE;
+import static com.github.jberkel.pay.me.Response.ERROR;
+import static com.github.jberkel.pay.me.Response.IABHELPER_BAD_RESPONSE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_DISPOSED;
+import static com.github.jberkel.pay.me.Response.IABHELPER_INVALID_CONSUMPTION;
+import static com.github.jberkel.pay.me.Response.IABHELPER_MISSING_TOKEN;
+import static com.github.jberkel.pay.me.Response.IABHELPER_REMOTE_EXCEPTION;
+import static com.github.jberkel.pay.me.Response.IABHELPER_SEND_INTENT_FAILED;
+import static com.github.jberkel.pay.me.Response.IABHELPER_SUBSCRIPTIONS_NOT_AVAILABLE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_UNKNOWN_ERROR;
+import static com.github.jberkel.pay.me.Response.IABHELPER_UNKNOWN_PURCHASE_RESPONSE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_VERIFICATION_FAILED;
+import static com.github.jberkel.pay.me.Response.OK;
+import static com.github.jberkel.pay.me.Response.getDescription;
+import static com.github.jberkel.pay.me.model.ItemType.INAPP;
+import static com.github.jberkel.pay.me.model.ItemType.SUBS;
+
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+
+import org.json.JSONException;
+
 import com.android.vending.billing.IInAppBillingService;
 import com.github.jberkel.pay.me.listener.OnConsumeFinishedListener;
 import com.github.jberkel.pay.me.listener.OnConsumeMultiFinishedListener;
@@ -39,18 +63,19 @@ import com.github.jberkel.pay.me.model.Purchase;
 import com.github.jberkel.pay.me.model.SkuDetails;
 import com.github.jberkel.pay.me.validator.DefaultSignatureValidator;
 import com.github.jberkel.pay.me.validator.SignatureValidator;
-import org.json.JSONException;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-
-import static android.app.Activity.RESULT_CANCELED;
-import static android.app.Activity.RESULT_OK;
-import static com.github.jberkel.pay.me.IabConsts.*;
-import static com.github.jberkel.pay.me.Response.*;
-import static com.github.jberkel.pay.me.model.ItemType.INAPP;
-import static com.github.jberkel.pay.me.model.ItemType.SUBS;
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.ComponentName;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentSender.SendIntentException;
+import android.content.ServiceConnection;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.text.TextUtils;
+import android.util.Log;
 
 /**
  * Provides convenience methods for in-app billing. You can create one instance of this
@@ -85,10 +110,7 @@ import static com.github.jberkel.pay.me.model.ItemType.SUBS;
  * @author Jan Berkel
  */
 public class IabHelper {
-    /* package */ static final Intent BIND_BILLING_SERVICE = new Intent("com.android.vending.billing.InAppBillingService.BIND");
-    static {
-        BIND_BILLING_SERVICE.setPackage("com.android.vending");
-    }
+    /* package */ static final Intent BIND_BILLING_SERVICE = new Intent("com.android.vending.billing.InAppBillingService.BIND").setPackage("com.android.vending");
 
     private Context mContext;
     private IInAppBillingService mService;
