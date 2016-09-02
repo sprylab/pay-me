@@ -1,36 +1,40 @@
 package com.github.jberkel.pay.me;
 
-import android.app.Activity;
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentSender;
-import android.content.ServiceConnection;
-import android.content.pm.ResolveInfo;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
-import android.util.Base64;
-
-import com.android.vending.billing.IInAppBillingService;
-import com.github.jberkel.pay.me.listener.OnConsumeFinishedListener;
-import com.github.jberkel.pay.me.listener.OnConsumeMultiFinishedListener;
-import com.github.jberkel.pay.me.listener.OnIabPurchaseFinishedListener;
-import com.github.jberkel.pay.me.listener.OnIabSetupFinishedListener;
-import com.github.jberkel.pay.me.listener.QueryInventoryFinishedListener;
-import com.github.jberkel.pay.me.model.Inventory;
-import com.github.jberkel.pay.me.model.Purchase;
-import com.github.jberkel.pay.me.validator.SignatureValidator;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.robolectric.Robolectric;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.res.builder.RobolectricPackageManager;
-import org.robolectric.shadows.ShadowLog;
+import static com.github.jberkel.pay.me.IabConsts.API_VERSION;
+import static com.github.jberkel.pay.me.IabConsts.GET_SKU_DETAILS_ITEM_LIST;
+import static com.github.jberkel.pay.me.IabConsts.INAPP_CONTINUATION_TOKEN;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_BUY_INTENT;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_CODE;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_GET_SKU_DETAILS_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_ITEM_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_PURCHASE_DATA;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_PURCHASE_DATA_LIST;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_SIGNATURE;
+import static com.github.jberkel.pay.me.IabConsts.RESPONSE_INAPP_SIGNATURE_LIST;
+import static com.github.jberkel.pay.me.Response.BILLING_UNAVAILABLE;
+import static com.github.jberkel.pay.me.Response.DEVELOPER_ERROR;
+import static com.github.jberkel.pay.me.Response.ERROR;
+import static com.github.jberkel.pay.me.Response.IABHELPER_BAD_RESPONSE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_DISPOSED;
+import static com.github.jberkel.pay.me.Response.IABHELPER_REMOTE_EXCEPTION;
+import static com.github.jberkel.pay.me.Response.IABHELPER_SEND_INTENT_FAILED;
+import static com.github.jberkel.pay.me.Response.IABHELPER_SUBSCRIPTIONS_NOT_AVAILABLE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_UNKNOWN_ERROR;
+import static com.github.jberkel.pay.me.Response.IABHELPER_UNKNOWN_PURCHASE_RESPONSE;
+import static com.github.jberkel.pay.me.Response.IABHELPER_VERIFICATION_FAILED;
+import static com.github.jberkel.pay.me.Response.ITEM_UNAVAILABLE;
+import static com.github.jberkel.pay.me.Response.OK;
+import static com.github.jberkel.pay.me.model.ItemType.INAPP;
+import static com.github.jberkel.pay.me.model.ItemType.SUBS;
+import static org.fest.assertions.api.Assertions.assertThat;
+import static org.fest.assertions.api.Assertions.fail;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.security.KeyFactory;
 import java.security.KeyPair;
@@ -44,17 +48,38 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import static com.github.jberkel.pay.me.IabConsts.*;
-import static com.github.jberkel.pay.me.Response.*;
-import static com.github.jberkel.pay.me.model.ItemType.INAPP;
-import static com.github.jberkel.pay.me.model.ItemType.SUBS;
-import static org.fest.assertions.api.Assertions.assertThat;
-import static org.fest.assertions.api.Assertions.fail;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.isNull;
-import static org.mockito.Mockito.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.robolectric.Robolectric;
+import org.robolectric.RobolectricTestRunner;
+import org.robolectric.res.builder.RobolectricPackageManager;
+import org.robolectric.shadows.ShadowLog;
+
+import com.android.vending.billing.IInAppBillingService;
+import com.github.jberkel.pay.me.listener.OnConsumeFinishedListener;
+import com.github.jberkel.pay.me.listener.OnConsumeMultiFinishedListener;
+import com.github.jberkel.pay.me.listener.OnIabPurchaseFinishedListener;
+import com.github.jberkel.pay.me.listener.OnIabSetupFinishedListener;
+import com.github.jberkel.pay.me.listener.QueryInventoryFinishedListener;
+import com.github.jberkel.pay.me.model.Inventory;
+import com.github.jberkel.pay.me.model.Purchase;
+import com.github.jberkel.pay.me.validator.SignatureValidator;
+
+import android.app.Activity;
+import android.app.PendingIntent;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentSender;
+import android.content.ServiceConnection;
+import android.content.pm.ResolveInfo;
+import android.os.Bundle;
+import android.os.IBinder;
+import android.os.RemoteException;
+import android.util.Base64;
 
 @RunWith(RobolectricTestRunner.class)
 public class IabHelperTest {
@@ -912,7 +937,7 @@ public class IabHelperTest {
     private Context registerServiceWithPackageManager() {
         Context context = Robolectric.application;
         RobolectricPackageManager pm = (RobolectricPackageManager) context.getPackageManager();
-        pm.addResolveInfoForIntent(IabHelper.BIND_BILLING_SERVICE, new ResolveInfo());
+        pm.addResolveInfoForIntent(IabHelper.getServiceIntent(), new ResolveInfo());
         return context;
     }
 
